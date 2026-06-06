@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="Meus Gastos" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Meus Gastos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a0a; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding-bottom: 2rem; }
+    .header { padding: 1.25rem 1.25rem 1rem; border-bottom: 0.5px solid #222; position: sticky; top: 0; background: #0a0a0a; z-index: 10; }
+    .header-top { display: flex; align-items: center; gap: 10px; }
+    .header-icon { width: 36px; height: 36px; background: #7B68EE; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .header h1 { font-size: 18px; font-weight: 500; }
+    .header p { font-size: 11px; color: #1D9E75; margin-top: 6px; display: flex; align-items: center; gap: 5px; }
+    .form-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    .field-label { font-size: 11px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    input[type="date"], input[type="number"], input[type="text"], textarea {
+      width: 100%; font-size: 15px; padding: 12px 14px;
+      border: 0.5px solid #222; border-radius: 12px;
+      background: #111; color: #fff; outline: none;
+      font-family: inherit; transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    input:focus, textarea:focus { border-color: #7B68EE; }
+    input::placeholder, textarea::placeholder { color: #444; }
+    textarea { resize: none; height: 72px; }
+    .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .cat-btn {
+      padding: 12px 4px; border: 0.5px solid #1e1e1e; border-radius: 12px; background: #111;
+      color: #555; font-size: 11px; font-weight: 500; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .cat-btn span.ic { font-size: 22px; }
+    .cat-btn.active { background: #17153a; border-color: #7B68EE; color: #AFA9EC; }
+    .pay-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .pay-btn {
+      padding: 12px 14px; border: 0.5px solid #1e1e1e; border-radius: 12px; background: #111;
+      color: #555; font-size: 13px; font-weight: 500; cursor: pointer;
+      display: flex; align-items: center; gap: 9px;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .pay-btn span.ic { font-size: 18px; }
+    .pay-btn.active { background: #0a1f15; border-color: #1D9E75; color: #5DCAA5; }
+    .valor-wrap { position: relative; }
+    .valor-wrap span.prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #444; font-size: 15px; }
+    .valor-wrap input { padding-left: 36px; }
+    .submit-btn {
+      width: 100%; padding: 15px; border: none; border-radius: 12px;
+      background: #7B68EE; color: #fff; font-size: 15px; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-family: inherit; transition: background 0.15s, transform 0.1s;
+    }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
+    .msg { border-radius: 12px; padding: 14px 16px; font-size: 14px; display: none; align-items: center; gap: 8px; justify-content: center; }
+    .msg.success { background: #0a1f15; border: 0.5px solid #1D9E75; color: #5DCAA5; }
+    .msg.error { background: #1a0a0a; border: 0.5px solid #A32D2D; color: #F09595; font-size: 13px; }
+    .msg.loading { background: #111; border: 0.5px solid #333; color: #888; }
+    .spinner { width: 16px; height: 16px; border: 2px solid #333; border-top-color: #7B68EE; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #subcampo { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="header-icon">💰</div>
+    <div><h1>Meus Gastos</h1></div>
+  </div>
+  <p>✅ Conectado ao Google Sheets</p>
+</div>
+
+<div class="form-body">
+
+  <div>
+    <div class="field-label">Data</div>
+    <input type="date" id="data" />
+  </div>
+
+  <div>
+    <div class="field-label">Valor</div>
+    <div class="valor-wrap">
+      <span class="prefix">R$</span>
+      <input type="number" id="valor" placeholder="0,00" step="0.01" min="0" />
+    </div>
+  </div>
+
+  <div>
+    <div class="field-label">Pagamento</div>
+    <div class="pay-grid">
+      <button class="pay-btn" data-pay="Pix" onclick="selectPay(this)"><span class="ic">📲</span>Pix</button>
+      <button class="pay-btn" data-pay="Débito" onclick="selectPay(this)"><span class="ic">💳</span>Débito</button>
+      <button class="pay-btn" data-pay="Crédito" onclick="selectPay(this)"><span class="ic">💳</span>Crédito</button>
+      <button class="pay-btn" data-pay="Dinheiro" onclick="selectPay(this)"><span class="ic">💵</span>Dinheiro</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="field-label">Categoria</div>
+    <div class="cat-grid">
+      <button class="cat-btn" onclick="selectCat(this,'Carro')"><span class="ic">🚗</span>Carro</button>
+      <button class="cat-btn" onclick="selectCat(this,'Casa')"><span class="ic">🏠</span>Casa</button>
+      <button class="cat-btn" onclick="selectCat(this,'Alimentação')"><span class="ic">🍽️</span>Alimentação</button>
+      <button class="cat-btn" onclick="selectCat(this,'Lanche')"><span class="ic">☕</span>Lanche</button>
+      <button class="cat-btn" onclick="selectCat(this,'Roupa')"><span class="ic">👕</span>Roupa</button>
+      <button class="cat-btn" onclick="selectCat(this,'Saúde')"><span class="ic">💊</span>Saúde</button>
+      <button class="cat-btn" onclick="selectCat(this,'Academia')"><span class="ic">💪</span>Academia</button>
+      <button class="cat-btn" onclick="selectCat(this,'Lazer')"><span class="ic">🎮</span>Lazer</button>
+      <button class="cat-btn" onclick="selectCat(this,'Outros')"><span class="ic">📦</span>Outros</button>
+    </div>
+  </div>
+
+  <div id="subcampo">
+    <div class="field-label" id="sub-label">Detalhe</div>
+    <input type="text" id="descricao" placeholder="" />
+  </div>
+
+  <div>
+    <div class="field-label">Observação <span style="color:#333">(opcional)</span></div>
+    <textarea id="obs" placeholder="Informação extra..."></textarea>
+  </div>
+
+  <div id="msgbox" class="msg"></div>
+
+  <button class="submit-btn" id="btn" onclick="salvar()">
+    💾 Salvar na planilha
+  </button>
+
+</div>
+
+<script>
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhDnWtHniSTlkFUaCUMhNdkzyYUwctCiE5jF4BueQGKyjbsvsJjN2IMUMK0iO2SbxI/exec';
+
+  let catSel = '', pagSel = '';
+
+  const subLabels = {
+    'Carro':'Detalhe (ex: gasolina, óleo...)',
+    'Casa':'Detalhe (ex: aluguel, luz...)',
+    'Alimentação':'O que comprou?',
+    'Lanche':'Onde foi?',
+    'Roupa':'O que comprou?',
+    'Saúde':'Qual serviço/produto?',
+    'Academia':'Qual academia/produto?',
+    'Lazer':'O que foi?',
+    'Outros':'Descreva o gasto',
+  };
+
+  document.getElementById('data').value = new Date().toISOString().split('T')[0];
+
+  function selectCat(el, cat) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    catSel = cat;
+    document.getElementById('subcampo').style.display = 'block';
+    document.getElementById('sub-label').textContent = subLabels[cat] || 'Detalhe';
+    document.getElementById('descricao').placeholder = subLabels[cat] || '';
+  }
+
+  function selectPay(el) {
+    document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    pagSel = el.dataset.pay;
+  }
+
+  function showMsg(type, text) {
+    const box = document.getElementById('msgbox');
+    box.className = 'msg ' + type;
+    box.style.display = 'flex';
+    box.innerHTML = type === 'loading'
+      ? '<div class="spinner"></div>' + text
+      : text;
+  }
+
+  async function salvar() {
+    const data = document.getElementById('data').value;
+    const valor = document.getElementById('valor').value;
+    const desc = document.getElementById('descricao').value;
+    const obs = document.getElementById('obs').value;
+
+    if (!data || !valor || !catSel || !pagSel) {
+      showMsg('error', '⚠️ Preencha data, valor, categoria e pagamento.');
+      return;
+    }
+
+    const btn = document.getElementById('btn');
+    btn.disabled = true;
+    showMsg('loading', 'Salvando...');
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data, valor: parseFloat(valor).toFixed(2),
+          categoria: catSel, detalhe: desc || '—',
+          pagamento: pagSel, obs: obs || '—'
+        })
+      });
+
+      showMsg('success', '✅ Gasto salvo na planilha!');
+      document.getElementById('valor').value = '';
+      document.getElementById('descricao').value = '';
+      document.getElementById('obs').value = '';
+      document.querySelectorAll('.cat-btn, .pay-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('subcampo').style.display = 'none';
+      catSel = ''; pagSel = '';
+
+    } catch(e) {
+      showMsg('error', '❌ Erro ao salvar. Verifique a conexão.');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
